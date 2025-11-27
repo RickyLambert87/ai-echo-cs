@@ -34,6 +34,9 @@ import {
 } from "@workspace/ui/components/ai/message";
 import { AIResponse } from "@workspace/ui/components/ai/response";
 import { useMemo } from "react";
+import { motion } from "framer-motion";
+import { messageBubbleVariants } from "@workspace/ui/lib/animations";
+import { StaggerWrapper, StaggerItem } from "@workspace/ui/components/stagger-wrapper";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -144,50 +147,61 @@ export const WidgetChatScreen = () => {
             onLoadMore={handleLoadMore}
             ref={topElementRef}
           />
-          {toUIMessages(messages.results ?? [])?.map((message) => {
+          {toUIMessages(messages.results ?? [])?.map((message, index) => {
+            const isUser = message.role === "user";
             return (
-              <AIMessage
-                from={message.role === "user" ? "user" : "assistant"}
+              <motion.div
                 key={message.id}
+                variants={messageBubbleVariants(isUser)}
+                initial="initial"
+                animate="animate"
+                transition={{
+                  delay: index < 5 ? index * 0.05 : 0,
+                }}
               >
-                <AIMessageContent>
-                  <AIResponse>{message.content}</AIResponse>
-                </AIMessageContent>
-                {message.role === "assistant" && (
-                  <DicebearAvatar
-                    imageUrl="/logo.svg"
-                    seed="assistant"
-                    size={32}
-                  />
-                )}
-              </AIMessage>
-            )
+                <AIMessage from={isUser ? "user" : "assistant"}>
+                  <AIMessageContent>
+                    <AIResponse>{message.content}</AIResponse>
+                  </AIMessageContent>
+                  {!isUser && (
+                    <DicebearAvatar
+                      imageUrl="/logo.svg"
+                      seed="assistant"
+                      size={32}
+                    />
+                  )}
+                </AIMessage>
+              </motion.div>
+            );
           })}
         </AIConversationContent>
       </AIConversation>
       {toUIMessages(messages.results ?? [])?.length === 1 && (
-        <AISuggestions className="flex w-full flex-col items-end p-2">
-          {suggestions.map((suggestion) => {
-            if (!suggestion) {
-              return null;
-            }
+        <StaggerWrapper staggerDelay={0.1}>
+          <AISuggestions className="flex w-full flex-col items-end p-2">
+            {suggestions.map((suggestion) => {
+              if (!suggestion) {
+                return null;
+              }
 
-            return (
-              <AISuggestion
-                key={suggestion}
-                onClick={() => {
-                  form.setValue("message", suggestion, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                    shouldTouch: true,
-                  });
-                  form.handleSubmit(onSubmit)();
-                }}
-                suggestion={suggestion}
-              />
-            )
-          })}
-        </AISuggestions>
+              return (
+                <StaggerItem key={suggestion}>
+                  <AISuggestion
+                    onClick={() => {
+                      form.setValue("message", suggestion, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                        shouldTouch: true,
+                      });
+                      form.handleSubmit(onSubmit)();
+                    }}
+                    suggestion={suggestion}
+                  />
+                </StaggerItem>
+              );
+            })}
+          </AISuggestions>
+        </StaggerWrapper>
       )}
       <Form {...form}>
           <AIInput

@@ -36,6 +36,9 @@ import { useState } from "react";
 import { cn } from "@workspace/ui/lib/utils";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { toast } from "sonner";
+import { AnimatedWrapper } from "@workspace/ui/components/animated-wrapper";
+import { motion } from "framer-motion";
+import { messageBubbleVariants } from "@workspace/ui/lib/animations";
 
 const formSchema = z.object({
   message: z.string().min(1, "Message is required"),
@@ -167,25 +170,37 @@ export const ConversationIdView = ({
             onLoadMore={handleLoadMore}
             ref={topElementRef}
           />
-          {toUIMessages(messages.results ?? [])?.map((message) => (
-            <AIMessage
-            // In reverse, because we are watching from "assistant" prespective
-              from={message.role === "user" ? "assistant" : "user"}
-              key={message.id}
-            >
-              <AIMessageContent>
-                <AIResponse>
-                  {message.content}
-                </AIResponse>
-              </AIMessageContent>
-              {message.role === "user" && (
-                <DicebearAvatar
-                  seed={conversation?.contactSessionId ?? "user"}
-                  size={32}
-                />
-              )}
-            </AIMessage>
-          ))}
+          {toUIMessages(messages.results ?? [])?.map((message, index) => {
+            const isUser = message.role === "user";
+            return (
+              <motion.div
+                key={message.id}
+                variants={messageBubbleVariants(!isUser)}
+                initial="initial"
+                animate="animate"
+                transition={{
+                  delay: index < 5 ? index * 0.05 : 0, // Stagger first 5 messages
+                }}
+              >
+                <AIMessage
+                  // In reverse, because we are watching from "assistant" prespective
+                  from={isUser ? "assistant" : "user"}
+                >
+                  <AIMessageContent>
+                    <AIResponse>
+                      {message.content}
+                    </AIResponse>
+                  </AIMessageContent>
+                  {isUser && (
+                    <DicebearAvatar
+                      seed={conversation?.contactSessionId ?? "user"}
+                      size={32}
+                    />
+                  )}
+                </AIMessage>
+              </motion.div>
+            );
+          })}
         </AIConversationContent>
         <AIConversationScrollButton />
       </AIConversation>
@@ -275,8 +290,8 @@ export const ConversationIdViewLoading = () => {
                 )}
                 key={index}
               >
-                <Skeleton className={`h-9 ${width} rounded-lg bg-neutral-200`} />
-                <Skeleton className="size-8 rounded-full bg-neutral-200" />
+                <Skeleton className={`h-9 ${width} rounded-lg bg-neutral-200 shimmer`} />
+                <Skeleton className="size-8 rounded-full bg-neutral-200 shimmer" />
               </div>
             );
           })}
